@@ -11,7 +11,7 @@ class HrAttendance(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        # --- PRODUCTION CONFIGURATION-- adsva
+        # --- PRODUCTION CONFIGURATION-- adsv
         # 1. Define list of allowed network addresses and individual IP addresses
         # '192.168.18.0/24' subnet includes all addresses from 192.168.18.1 to 192.168.18.254
         ALLOWED_NETWORKS = [
