@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="custom_attendance_ip.EodDialog">
+        <Dialog title="'Attendance Wrap-up'" size="'md'" contentClass="'eod-glass-modal'">
+            <div class="eod-dialog-container">
+                <div class="eod-title">
+                    <i class="fa fa-paper-plane"/>
+                    <span>Daily Summary</span>
+                </div>
+                <p class="eod-subtitle">Great job today! Briefly share what you've accomplished before you head out.</p>
+
+                <div t-if="state.error" class="eod-error-box">
+                    <i class="fa fa-info-circle"/>
+                    <t t-esc="state.error"/>
+                </div>
+
+                <div class="position-relative">
+                    <textarea class="eod-textarea" 
+                              placeholder="Describe your achievements..." 
+                              t-model="state.eodText"
+                              t-on-input="onInputChange"/>
+                </div>
+
+                <div class="eod-footer">
+                    <div t-attf-class="eod-counter {{ counterClass }}">
+                        <i class="fa fa-tachometer"/>
+                        <span>Progress: <t t-esc="state.eodText.length"/> / 255</span>
+                    </div>
+                    <button class="eod-btn-submit" t-on-click="onSave" t-att-disabled="state.eodText.length == 0">
+                        Complete Checkout
+                    </button>
+                </div>
+            </div>
+            <t t-set-slot="footer">
+                <span/>
+            </t>
+        </Dialog>
+    </t>
+</templates>

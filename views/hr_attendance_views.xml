@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_hr_attendance_form_inherit" model="ir.ui.view">
+            <field name="name">hr.attendance.form.inherit</field>
+            <field name="model">hr.attendance</field>
+            <field name="inherit_id" ref="hr_attendance.hr_attendance_view_form"/>
+            <field name="arch" type="xml">
+                <field name="worked_hours" position="after">
+                    <field name="eod_report" placeholder="End of day report..."/>
+                </field>
+            </field>
+        </record>
+
+        <!-- List View Inheritance (Regular User) -->
+        <record id="view_attendance_tree_inherit" model="ir.ui.view">
+            <field name="name">hr.attendance.list.inherit</field>
+            <field name="model">hr.attendance</field>
+            <field name="inherit_id" ref="hr_attendance.view_attendance_tree"/>
+            <field name="arch" type="xml">
+                <field name="worked_hours" position="after">
+                    <field name="eod_report" optional="show" string="EOD Summary"/>
+                </field>
+            </field>
+        </record>
+
+        <!-- List View Inheritance (Admin/Management View) -->
+        <record id="view_attendance_tree_management_inherit" model="ir.ui.view">
+            <field name="name">hr.attendance.management.list.inherit</field>
+            <field name="model">hr.attendance</field>
+            <field name="inherit_id" ref="hr_attendance.view_attendance_tree_management"/>
+            <field name="arch" type="xml">
+                <field name="worked_hours" position="after">
+                    <field name="eod_report" string="EOD Summary"/>
+                </field>
+            </field>
+        </record>
+
+        <!-- Kanban View Inheritance (Fixed ID and XPath for Odoo 18) -->
+        <record id="hr_attendance_view_kanban_inherit" model="ir.ui.view">
+            <field name="name">hr.attendance.kanban.inherit</field>
+            <field name="model">hr.attendance</field>
+            <field name="inherit_id" ref="hr_attendance.view_hr_attendance_kanban"/>
+            <field name="arch" type="xml">
+                <xpath expr="//t[@t-name='card']/div" position="after">
+                    <div t-if="record.eod_report.raw_value" class="text-muted mt-1 mb-1" style="font-size: 0.85rem; border-left: 3px solid #7c3aed; padding-left: 8px;">
+                        <i class="fa fa-file-text-o me-1"/>
+                        <field name="eod_report"/>
+                    </div>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

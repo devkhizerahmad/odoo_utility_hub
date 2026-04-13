@@ -1,0 +1,151 @@
+/* Ultra-Premium Glassmorphism & UI for EOD Dialog */
+
+.modal-content.eod-glass-modal {
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.5) 100%);
+    backdrop-filter: blur(15px) saturate(200%);
+    -webkit-backdrop-filter: blur(15px) saturate(200%);
+    border-radius: 24px;
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15), 0 0 20px rgba(124, 58, 237, 0.1);
+}
+
+.eod-dialog-container {
+    padding: 2rem;
+    animation: fadeInScaleUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes fadeInScaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.eod-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, #1a202c 0%, #4a5568 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.eod-title i {
+    -webkit-text-fill-color: #7c3aed;
+    transition: all 0.5s ease;
+}
+
+.eod-title:hover i {
+    transform: translateY(-8px) rotate(15deg);
+    filter: drop-shadow(0 0 8px rgba(124, 58, 237, 0.6));
+}
+
+.eod-subtitle {
+    color: #4a5568;
+    margin-bottom: 2rem;
+    font-size: 1.05rem;
+    line-height: 1.5;
+}
+
+.eod-textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    font-size: 1.1rem;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    resize: none;
+    color: #2d3748;
+}
+
+.eod-textarea:focus {
+    outline: none;
+    border-color: #7c3aed;
+    background: white;
+    box-shadow: 0 0 0 5px rgba(124, 58, 237, 0.15), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.eod-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+}
+
+.eod-counter {
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.eod-counter.normal { background: rgba(124, 58, 237, 0.1); color: #7c3aed; }
+.eod-counter.warning { background: rgba(245, 158, 11, 0.1); color: #d97706; }
+.eod-counter.danger { background: rgba(239, 68, 68, 0.1); color: #dc2626; animation: shake 0.5s ease; }
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+.eod-btn-submit {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+    color: white;
+    padding: 12px 32px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    border: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+    cursor: pointer;
+}
+
+/* Shimmer Animation */
+.eod-btn-submit::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -60%;
+    width: 20%;
+    height: 200%;
+    background: rgba(255, 255, 255, 0.4);
+    transform: rotate(30deg);
+    transition: 0s;
+}
+
+.eod-btn-submit:hover::after {
+    left: 140%;
+    transition: 0.7s;
+}
+
+.eod-btn-submit:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(124, 58, 237, 0.5);
+    background: linear-gradient(135deg, #8b5cf6 0%, #4f46e5 100%);
+}
+
+.eod-btn-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
