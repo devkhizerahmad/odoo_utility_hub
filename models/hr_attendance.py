@@ -38,11 +38,11 @@ class HrAttendance(models.Model):
         """
         Fetches allowed IPs and Networks from Odoo System Parameters.
         Key: custom_attendance.allowed_ips
-        Default: 192.168.18.0/24, 127.0.0.1, ::1
+        Default: 192.168.18.0/24
         """
         param = self.env['ir.config_parameter'].sudo().get_param(
             'custom_attendance.allowed_ips', 
-            '192.168.18.0/24, 127.0.0.1, ::1'
+            '192.168.18.0/24'
         )
         networks = []
         for ip_str in param.split(','):
