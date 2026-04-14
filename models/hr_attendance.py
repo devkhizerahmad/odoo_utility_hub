@@ -34,21 +34,40 @@ class HrAttendance(models.Model):
     # ---------------------------------------------------------
     # VALIDATION METHODS
     # ---------------------------------------------------------
+    def _get_allowed_networks(self):
+        """
+        Fetches allowed IPs and Networks from Odoo System Parameters.
+        Key: custom_attendance.allowed_ips
+        Default: 192.168.18.0/24, 127.0.0.1, ::1
+        """
+        param = self.env['ir.config_parameter'].sudo().get_param(
+            'custom_attendance.allowed_ips', 
+            '192.168.18.0/24, 127.0.0.1, ::1'
+        )
+        networks = []
+        for ip_str in param.split(','):
+            ip_str = ip_str.strip()
+            if not ip_str:
+                continue
+            try:
+                if '/' in ip_str:
+                    networks.append(ipaddress.ip_network(ip_str, strict=False))
+                else:
+                    networks.append(ipaddress.ip_address(ip_str))
+            except ValueError:
+                _logger.error("Invalid IP/Network config in System Parameters: %s", ip_str)
+        return networks
+
     def _validate_client_ip(self):
         """
         Validates the incoming HTTP request's IP against a whitelist of authorized office networks.
         Prevents unauthorized remote check-ins/check-outs.
         """
-        # Define authorized subnets and localhost for development
-        ALLOWED_NETWORKS = [
-            ipaddress.ip_network('192.168.18.0/24'), 
-            ipaddress.ip_address('127.0.0.1'),       
-            ipaddress.ip_address('::1'),             
-        ]
-
         # Bypass validation for Internal CRON jobs or Server Actions (where request context is void)
         if not request:
             return True
+
+        ALLOWED_NETWORKS = self._get_allowed_networks()
 
         # Extract client IP, respecting reverse proxies (Nginx, Traefik, HAProxy)
         header_ip = request.httprequest.environ.get('HTTP_X_FORWARDED_FOR')
