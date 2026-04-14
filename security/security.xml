@@ -1,16 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 
+    ======================================================================== 
+    FILE: security.xml
+    DESCRIPTION: Establishes Record-Level Security (Row Level Security).
+                 Delineates data boundaries between Standard Users and HR Management.
+    ========================================================================
+-->
 <odoo>
     <data noupdate="1">
-        <!-- ATTENDANCE RULES -->
+        
+        <!-- ===================================================================
+             ATTENDANCE DATA RULES
+             Ensures users only access their personal logs, while managers see all.
+             =================================================================== -->
         <record id="hr_attendance_rule_user_own_records" model="ir.rule">
             <field name="name">Attendance: Employee Only Own Records</field>
             <field name="model_id" ref="hr_attendance.model_hr_attendance"/>
+            <!-- Domain isolates query to the contextual user's linked physical employee -->
             <field name="domain_force">[('employee_id.user_id', '=', user.id)]</field>
             <field name="groups" eval="[(4, ref('base.group_user'))]"/>
             <field name="perm_read" eval="1"/>
             <field name="perm_write" eval="1"/>
             <field name="perm_create" eval="1"/>
-            <field name="perm_unlink" eval="1"/>
+            <!-- Deletion is explicitly revoked for standard users to maintain audit trails -->
+            <field name="perm_unlink" eval="0"/>
         </record>
 
         <record id="hr_attendance_rule_manager_all_records" model="ir.rule">
@@ -24,7 +37,10 @@
             <field name="perm_unlink" eval="1"/>
         </record>
 
-        <!-- EMPLOYEE DIRECTORY RULES (Public Model - Odoo 18) -->
+        <!-- ===================================================================
+             EMPLOYEE DIRECTORY RULES (Public Models)
+             Odoo 18 natively relies on hr.employee.public for company directories
+             =================================================================== -->
         <record id="hr_employee_public_rule_user_own" model="ir.rule">
             <field name="name">Employee Public: Only Own Profile</field>
             <field name="model_id" ref="hr.model_hr_employee_public"/>
@@ -47,7 +63,9 @@
             <field name="perm_unlink" eval="1"/>
         </record>
 
-        <!-- REGULAR EMPLOYEE RULES -->
+        <!-- ===================================================================
+             REGULAR EMPLOYEE RULES (Private Models)
+             =================================================================== -->
         <record id="hr_employee_rule_user_own_profile" model="ir.rule">
             <field name="name">Employee Profile: Only Own</field>
             <field name="model_id" ref="hr.model_hr_employee"/>

@@ -1,3 +1,9 @@
+/**
+ * @file my_attendances.js
+ * @description Odoo OWL components override to institute End of Day (EOD) reporting popups 
+ * upon HR check-out actions. Modifies both Systray and Dashboard widgets.
+ */
+
 import { patch } from "@web/core/utils/patch";
 import { ActivityMenu } from "@hr_attendance/components/attendance_menu/attendance_menu";
 import { CheckInOut } from "@hr_attendance/components/check_in_out/check_in_out";
@@ -7,24 +13,33 @@ import { Dialog } from "@web/core/dialog/dialog";
 
 /**
  * EodDialog Component
- * Renders the popup for EOD report submission.
+ * Framework-native Web Component rendering the modal interface for EOD reports.
+ * Employs responsive state management to monitor user input thresholds and submission statuses.
  */
 class EodDialog extends Component {
     static template = "custom_attendance_ip.EodDialog";
     static components = { Dialog };
     static props = {
-        onSave: { type: Function },
+        onSave: { type: Function }, // Callback resolved with sanitized EOD text
         onClose: { type: Function },
         close: { type: Function },
     };
 
+    /**
+     * Initializes localized component state defining the report payload,
+     * displayable schema violations, and atomic transition locks.
+     */
     setup() {
         this.state = useState({
             eodText: "",
             error: "",
+            isSubmitting: false,
         });
     }
 
+    /**
+     * Computes real-time stylistic classes for character limits highlighting imminent truncation boundaries.
+     */
     get counterClass() {
         const len = this.state.eodText.length;
         if (len > 230) return "danger";
@@ -32,6 +47,10 @@ class EodDialog extends Component {
         return "normal";
     }
 
+    /**
+     * Traps generic text inputs, enforcing strict 255-character limits client-side 
+     * before routing to ORM logic.
+     */
     onInputChange(ev) {
         if (this.state.eodText.length > 255) {
             this.state.eodText = this.state.eodText.substring(0, 255);
@@ -39,54 +58,76 @@ class EodDialog extends Component {
         this.state.error = "";
     }
 
+    /**
+     * Async save dispatcher enforcing primary heuristics (min 5 chars)
+     * Tracks execution boundaries via boolean locks. 
+     */
     async onSave() {
         if (this.state.eodText.length < 5) {
             this.state.error = "Please provide a slightly more detailed report (min 5 characters).";
             return;
         }
-        await this.props.onSave(this.state.eodText);
-        this.props.close();
+        this.state.isSubmitting = true;
+        try {
+            await this.props.onSave(this.state.eodText);
+            this.props.close();
+        } catch (e) {
+            this.state.error = "An error occurred. Please try again.";
+        } finally {
+            this.state.isSubmitting = false;
+        }
     }
 }
 
-// 1. Patch SYSTRAY (Top Bar) Attendance Menu
+// ============================================================================
+// PATCH: SYSTRAY (Top Navigation Bar) Attendance Menu
+// ============================================================================
 patch(ActivityMenu.prototype, {
     setup() {
-        super.setup(); // Odoo 18 uses native super
+        super.setup();
         this.dialogService = useService("dialog");
         this.orm = useService("orm");
         this.notification = useService("notification");
+        this.actionService = useService("action");
     },
 
+    /**
+     * Intercepts standard checkout behavior. Spawns EOD Dialog natively over the UI index,
+     * chaining the original super payload only after positive EOD completion.
+     */
     async signInOut() {
-        // Agar user pehle se check-in hai, toh ye Check-out attempt hai
+        const originalSignInOut = super.signInOut.bind(this);
         if (this.state.checkedIn) {
             this.dialogService.add(EodDialog, {
-                onSave: (eodText) => this._submitEodAndCheckout(eodText),
+                onSave: async (eodText) => {
+                    const attendanceId = this.employee && this.employee.id ? this.employee.attendance_id : false;
+                    try {
+                        // Persist auxiliary data block utilizing a decoupled backend RPC invoke
+                        const result = await this.orm.call("hr.attendance", "action_save_eod", [attendanceId, eodText]);
+                        if (result && result.success) {
+                            // Defer strictly to framework APIs to encapsulate Geocoding (Lat/Lng) processes natively
+                            await originalSignInOut();
+                            this.notification.add("Checked out successfully!", { type: "success" });
+                        } else if (result && result.error) {
+                            this.notification.add(result.error, { type: "danger" });
+                        }
+                    } catch (error) {
+                        this.notification.add("An error occurred during checkout.", { type: "danger" });
+                    }
+                },
                 onClose: () => { }
             });
             return;
         }
-        // Check-in ke liye normal flow
-        await super.signInOut();
-    },
-
-    async _submitEodAndCheckout(eodText) {
-        const attendanceId = this.employee && this.employee.id ? this.employee.attendance_id : false;
-        try {
-            const result = await this.orm.call("hr.attendance", "action_submit_eod_checkout", [attendanceId, eodText]);
-            if (result && result.success) {
-                await this.searchReadEmployee(); // Refresh systray data
-            } else if (result && result.error) {
-                this.notification.add(result.error, { type: "danger" });
-            }
-        } catch (error) {
-            this.notification.add("An error occurred during checkout.", { type: "danger" });
-        }
+        
+        // Transparent bypass for standard Check-In lifecycle 
+        await originalSignInOut();
     }
 });
 
-// 2. Patch Dashboard Widget (CheckInOut)
+// ============================================================================
+// PATCH: KIOSK & DASHBOARD WIDGET 
+// ============================================================================
 patch(CheckInOut.prototype, {
     setup() {
         super.setup();
@@ -97,33 +138,29 @@ patch(CheckInOut.prototype, {
     },
 
     async signInOut() {
+        const originalSignInOut = super.signInOut.bind(this);
         if (this.props.checkedIn) {
             this.dialogService.add(EodDialog, {
-                onSave: (eodText) => this._submitEodAndCheckoutDashboard(eodText),
+                onSave: async (eodText) => {
+                    try {
+                        const result = await this.orm.call("hr.attendance", "action_save_eod", [false, eodText], {
+                            context: { employee_id: this.props.employeeId }
+                        });
+                        
+                        if (result && result.success) {
+                            // Process complete native lifecycle
+                            await originalSignInOut();
+                        } else if (result && result.error) {
+                            this.notification.add(result.error, { type: "danger" });
+                        }
+                    } catch (error) {
+                        this.notification.add("An error occurred during checkout.", { type: "danger" });
+                    }
+                },
                 onClose: () => { }
             });
             return;
         }
-        await super.signInOut();
-    },
-
-    async _submitEodAndCheckoutDashboard(eodText) {
-        try {
-            const result = await this.orm.call("hr.attendance", "action_submit_eod_checkout", [false, eodText], {
-                context: { employee_id: this.props.employeeId }
-            });
-            
-            if (result && result.success) {
-                if (this.props.nextAction) {
-                    this.actionService.doAction(this.props.nextAction);
-                } else {
-                    window.location.reload();
-                }
-            } else if (result && result.error) {
-                this.notification.add(result.error, { type: "danger" });
-            }
-        } catch (error) {
-            this.notification.add("An error occurred during checkout.", { type: "danger" });
-        }
+        await originalSignInOut();
     }
 });

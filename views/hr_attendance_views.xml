@@ -1,18 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 
+    ======================================================================== 
+    FILE: hr_attendance_views.xml
+    DESCRIPTION: Extends the core Odoo GUI to inject EOD elements and 
+                 execute column-level privacy rules per standard MVC practices.
+    ========================================================================
+-->
 <odoo>
     <data>
+        <!-- ===================================================================
+             FORM VIEW: Base EOD Field Injection
+             =================================================================== -->
         <record id="view_hr_attendance_form_inherit" model="ir.ui.view">
             <field name="name">hr.attendance.form.inherit</field>
             <field name="model">hr.attendance</field>
             <field name="inherit_id" ref="hr_attendance.hr_attendance_view_form"/>
             <field name="arch" type="xml">
+                <!-- Data Model Append -->
                 <field name="worked_hours" position="after">
                     <field name="eod_report" placeholder="End of day report..."/>
                 </field>
+                
+                <!-- 
+                     Data Privacy Enforcement:
+                     Restricting intrinsic geolocation fields exclusively to Administrative profiles. 
+                -->
+                <xpath expr="//field[@name='in_latitude']" position="attributes">
+                    <attribute name="groups">hr_attendance.group_hr_attendance_officer</attribute>
+                </xpath>
+                <xpath expr="//field[@name='in_longitude']" position="attributes">
+                    <attribute name="groups">hr_attendance.group_hr_attendance_officer</attribute>
+                </xpath>
+                <xpath expr="//field[@name='out_latitude']" position="attributes">
+                    <attribute name="groups">hr_attendance.group_hr_attendance_officer</attribute>
+                </xpath>
+                <xpath expr="//field[@name='out_longitude']" position="attributes">
+                    <attribute name="groups">hr_attendance.group_hr_attendance_officer</attribute>
+                </xpath>
             </field>
         </record>
 
-        <!-- List View Inheritance (Regular User) -->
+        <!-- ===================================================================
+             TREE VIEWS (Standard Employee vs Corporate Manager Profile)
+             =================================================================== -->
         <record id="view_attendance_tree_inherit" model="ir.ui.view">
             <field name="name">hr.attendance.list.inherit</field>
             <field name="model">hr.attendance</field>
@@ -21,32 +51,69 @@
                 <field name="worked_hours" position="after">
                     <field name="eod_report" optional="show" string="EOD Summary"/>
                 </field>
+                
+                <!-- Symmetrical Privacy Constraints applied to Datagrids -->
+                <xpath expr="//field[@name='in_latitude']" position="attributes">
+                    <attribute name="groups">hr_attendance.group_hr_attendance_officer</attribute>
+                </xpath>
+                <xpath expr="//field[@name='in_longitude']" position="attributes">
+                    <attribute name="groups">hr_attendance.group_hr_attendance_officer</attribute>
+                </xpath>
+                <xpath expr="//field[@name='out_latitude']" position="attributes">
+                    <attribute name="groups">hr_attendance.group_hr_attendance_officer</attribute>
+                </xpath>
+                <xpath expr="//field[@name='out_longitude']" position="attributes">
+                    <attribute name="groups">hr_attendance.group_hr_attendance_officer</attribute>
+                </xpath>
             </field>
         </record>
 
-        <!-- List View Inheritance (Admin/Management View) -->
         <record id="view_attendance_tree_management_inherit" model="ir.ui.view">
             <field name="name">hr.attendance.management.list.inherit</field>
             <field name="model">hr.attendance</field>
             <field name="inherit_id" ref="hr_attendance.view_attendance_tree_management"/>
             <field name="arch" type="xml">
+                <!-- Managers enforce rigorous observation, thus preventing optionality -->
                 <field name="worked_hours" position="after">
                     <field name="eod_report" string="EOD Summary"/>
                 </field>
             </field>
         </record>
 
-        <!-- Kanban View Inheritance (Fixed ID and XPath for Odoo 18) -->
+        <!-- ===================================================================
+             KANBAN VIEW: Custom UI Injection
+             =================================================================== -->
         <record id="hr_attendance_view_kanban_inherit" model="ir.ui.view">
             <field name="name">hr.attendance.kanban.inherit</field>
             <field name="model">hr.attendance</field>
             <field name="inherit_id" ref="hr_attendance.view_hr_attendance_kanban"/>
             <field name="arch" type="xml">
                 <xpath expr="//t[@t-name='card']/div" position="after">
-                    <div t-if="record.eod_report.raw_value" class="text-muted mt-1 mb-1" style="font-size: 0.85rem; border-left: 3px solid #7c3aed; padding-left: 8px;">
-                        <i class="fa fa-file-text-o me-1"/>
+                    <!-- Premium Glassmorphism & Bubble Interface implementation -->
+                    <div t-if="record.eod_report.raw_value" 
+                         title="EOD Summary"
+                         class="mt-2 mb-1 p-2" 
+                         style="background: rgba(124, 58, 237, 0.05); border: 1px dashed #7c3aed; border-radius: 12px; font-size: 0.82rem; color: #4b5563;">
+                        <i class="fa fa-quote-left me-2" style="color: #7c3aed; opacity: 0.6;"/>
                         <field name="eod_report"/>
                     </div>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- ===================================================================
+             SEARCH VIEW: Audit Workflows & KPI Data Filtering
+             =================================================================== -->
+        <record id="hr_attendance_view_filter_inherit" model="ir.ui.view">
+            <field name="name">hr.attendance.search.inherit</field>
+            <field name="model">hr.attendance</field>
+            <field name="inherit_id" ref="hr_attendance.hr_attendance_view_filter"/>
+            <field name="arch" type="xml">
+                <xpath expr="//search" position="inside">
+                    <separator/>
+                    <!-- Direct tracking for HR Audits regarding user accountability -->
+                    <filter string="With EOD Report" name="with_eod" domain="[('eod_report', '!=', False)]"/>
+                    <filter string="Missing EOD Report" name="no_eod" domain="[('eod_report', '=', False)]"/>
                 </xpath>
             </field>
         </record>
