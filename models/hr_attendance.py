@@ -63,15 +63,18 @@ class HrAttendance(models.Model):
         Validates the incoming HTTP request's IP against a whitelist of authorized office networks.
         Prevents unauthorized remote check-ins/check-outs.
         """
-        # Bypass validation for Internal CRON jobs or Server Actions (where request context is void)
-        if not request:
+        httprequest = getattr(request, 'httprequest', None)
+        if not httprequest:
             return True
 
         ALLOWED_NETWORKS = self._get_allowed_networks()
 
         # Extract client IP, respecting reverse proxies (Nginx, Traefik, HAProxy)
-        header_ip = request.httprequest.environ.get('HTTP_X_FORWARDED_FOR')
-        client_ip_str = header_ip.split(',')[0].strip() if header_ip else request.httprequest.remote_addr
+        header_ip = httprequest.environ.get('HTTP_X_FORWARDED_FOR')
+        client_ip_str = header_ip.split(',')[0].strip() if header_ip else httprequest.remote_addr
+        if not client_ip_str:
+            _logger.error("Attendance Tracker: No client IP available in HTTP request context.")
+            raise ValidationError(_("System Error: Unable to determine client IP address."))
         
         _logger.info("Attendance Tracker: Authenticating Client IP - %s", client_ip_str)
 
@@ -144,9 +147,16 @@ class HrAttendance(models.Model):
         Intercepts creation sequence to enforce IP whitelisting and daily limitations on check-in.
         """
         self._validate_client_ip()
+        checked_employees = set()
         for vals in vals_list:
-            if 'employee_id' in vals:
-                self._check_daily_attendance(vals['employee_id'])
+            employee_id = vals.get('employee_id')
+            if employee_id:
+                if employee_id in checked_employees:
+                    raise ValidationError(_(
+                        "Policy Enforcement: Duplicate attendance entries detected for the same employee in one request."
+                    ))
+                self._check_daily_attendance(employee_id)
+                checked_employees.add(employee_id)
         
         return super(HrAttendance, self).create(vals_list)
 
