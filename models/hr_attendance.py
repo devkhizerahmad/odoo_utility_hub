@@ -139,7 +139,8 @@ class HrAttendance(models.Model):
             ) % today_local)
 
     # ---------------------------------------------------------
-    # ORM OVERRIDES
+    # ORM OVERRIDES 
+    # define create and write overrides to inject validation logic at critical points in the attendance lifecycle.
     # ---------------------------------------------------------
     @api.model_create_multi
     def create(self, vals_list):
