@@ -68,17 +68,7 @@
             </field>
         </record>
 
-        <record id="view_attendance_tree_management_inherit" model="ir.ui.view">
-            <field name="name">hr.attendance.management.list.inherit</field>
-            <field name="model">hr.attendance</field>
-            <field name="inherit_id" ref="hr_attendance.view_attendance_tree_management"/>
-            <field name="arch" type="xml">
-                <!-- Managers enforce rigorous observation, thus preventing optionality -->
-                <field name="worked_hours" position="after">
-                    <field name="eod_report" string="EOD Summary"/>
-                </field>
-            </field>
-        </record>
+
 
         <!-- ===================================================================
              KANBAN VIEW: Custom UI Injection
