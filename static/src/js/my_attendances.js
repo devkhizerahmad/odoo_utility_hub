@@ -69,10 +69,14 @@ class EodDialog extends Component {
         }
         this.state.isSubmitting = true;
         try {
-            await this.props.onSave(this.state.eodText);
+            const result = await this.props.onSave(this.state.eodText);
+            if (!result || !result.success) {
+                this.state.error = (result && result.error) || "Unable to complete checkout. Please try again.";
+                return;
+            }
             this.props.close();
         } catch (e) {
-            this.state.error = "An error occurred. Please try again.";
+            this.state.error = e.message || "An error occurred. Please try again.";
         } finally {
             this.state.isSubmitting = false;
         }
@@ -108,12 +112,17 @@ patch(ActivityMenu.prototype, {
                             // Defer strictly to framework APIs to encapsulate Geocoding (Lat/Lng) processes natively
                             await originalSignInOut();
                             this.notification.add("Checked out successfully!", { type: "success" });
+                            return { success: true };
                         } else if (result && result.error) {
                             this.notification.add(result.error, { type: "danger" });
+                            return { success: false, error: result.error };
                         }
                     } catch (error) {
-                        this.notification.add("An error occurred during checkout.", { type: "danger" });
+                        const message = "An error occurred during checkout.";
+                        this.notification.add(message, { type: "danger" });
+                        return { success: false, error: message };
                     }
+                    return { success: false, error: "Unable to complete checkout." };
                 },
                 onClose: () => { }
             });
@@ -150,12 +159,17 @@ patch(CheckInOut.prototype, {
                         if (result && result.success) {
                             // Process complete native lifecycle
                             await originalSignInOut();
+                            return { success: true };
                         } else if (result && result.error) {
                             this.notification.add(result.error, { type: "danger" });
+                            return { success: false, error: result.error };
                         }
                     } catch (error) {
-                        this.notification.add("An error occurred during checkout.", { type: "danger" });
+                        const message = "An error occurred during checkout.";
+                        this.notification.add(message, { type: "danger" });
+                        return { success: false, error: message };
                     }
+                    return { success: false, error: "Unable to complete checkout." };
                 },
                 onClose: () => { }
             });

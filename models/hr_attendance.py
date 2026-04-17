@@ -58,6 +58,82 @@ class HrAttendance(models.Model):
                 _logger.error("Invalid IP/Network config in System Parameters: %s", ip_str)
         return networks
 
+    def _get_trusted_proxy_networks(self):
+        """
+        Fetch trusted reverse proxy IPs/networks.
+        Key: custom_attendance.trusted_proxy_ips
+        Example: 127.0.0.1,10.0.0.0/8
+        """
+        param = self.env['ir.config_parameter'].sudo().get_param(
+            'custom_attendance.trusted_proxy_ips',
+            ''
+        )
+        networks = []
+        for ip_str in param.split(','):
+            ip_str = ip_str.strip()
+            if not ip_str:
+                continue
+            try:
+                if '/' in ip_str:
+                    networks.append(ipaddress.ip_network(ip_str, strict=False))
+                else:
+                    networks.append(ipaddress.ip_address(ip_str))
+            except ValueError:
+                _logger.error("Invalid trusted proxy IP/Network in System Parameters: %s", ip_str)
+        return networks
+
+    def _ip_matches_networks(self, ip_obj, networks):
+        """Return True when an IP belongs to one of the configured IPs/networks."""
+        return any(
+            ip_obj in net if isinstance(net, (ipaddress.IPv4Network, ipaddress.IPv6Network))
+            else ip_obj == net
+            for net in networks
+        )
+
+    def _get_client_ip_address(self, httprequest):
+        """
+        Resolve the real client IP safely.
+        X-Forwarded-For is only trusted when the direct remote address belongs
+        to a configured trusted proxy.
+        """
+        remote_addr = httprequest.remote_addr
+        if not remote_addr:
+            raise ValidationError(_("System Error: Unable to determine client IP address."))
+
+        try:
+            remote_ip = ipaddress.ip_address(remote_addr)
+        except ValueError:
+            _logger.error("Malformed remote_addr detected: %s", remote_addr)
+            raise ValidationError(_("System Error: Invalid remote client IP detected (%s).") % remote_addr)
+
+        trusted_proxies = self._get_trusted_proxy_networks()
+        header_ip = httprequest.environ.get('HTTP_X_FORWARDED_FOR')
+        if not header_ip or not trusted_proxies or not self._ip_matches_networks(remote_ip, trusted_proxies):
+            return remote_ip
+
+        forwarded_chain = []
+        for ip_str in header_ip.split(','):
+            ip_str = ip_str.strip()
+            if not ip_str:
+                continue
+            try:
+                forwarded_chain.append(ipaddress.ip_address(ip_str))
+            except ValueError:
+                _logger.warning("Ignoring malformed X-Forwarded-For entry: %s", ip_str)
+
+        if not forwarded_chain:
+            return remote_ip
+
+        # Walk the proxy chain from right to left and stop at the first
+        # address that is not one of our trusted proxies.
+        for forwarded_ip in reversed(forwarded_chain):
+            if not self._ip_matches_networks(forwarded_ip, trusted_proxies):
+                return forwarded_ip
+
+        # If every address in the header belongs to trusted proxies, fall back
+        # to the left-most forwarded address.
+        return forwarded_chain[0]
+
     def _validate_client_ip(self):
         """
         Validates the incoming HTTP request's IP against a whitelist of authorized office networks.
@@ -69,23 +145,11 @@ class HrAttendance(models.Model):
 
         ALLOWED_NETWORKS = self._get_allowed_networks()
 
-        # Extract client IP, respecting reverse proxies (Nginx, Traefik, HAProxy)
-        header_ip = httprequest.environ.get('HTTP_X_FORWARDED_FOR')
-        client_ip_str = header_ip.split(',')[0].strip() if header_ip else httprequest.remote_addr
-        if not client_ip_str:
-            _logger.error("Attendance Tracker: No client IP available in HTTP request context.")
-            raise ValidationError(_("System Error: Unable to determine client IP address."))
-        
-        _logger.info("Attendance Tracker: Authenticating Client IP - %s", client_ip_str)
-
         try:
-            client_ip = ipaddress.ip_address(client_ip_str)
-            # Check if the extracted IP falls within any of the defined allowed networks
-            is_allowed = any(
-                client_ip in net if isinstance(net, (ipaddress.IPv4Network, ipaddress.IPv6Network))
-                else client_ip == net 
-                for net in ALLOWED_NETWORKS
-            )
+            client_ip = self._get_client_ip_address(httprequest)
+            client_ip_str = str(client_ip)
+            _logger.info("Attendance Tracker: Authenticating Client IP - %s", client_ip_str)
+            is_allowed = self._ip_matches_networks(client_ip, ALLOWED_NETWORKS)
 
             if not is_allowed:
                 _logger.warning("Security Policy Violation: Access Denied for IP %s", client_ip_str)
@@ -94,9 +158,9 @@ class HrAttendance(models.Model):
                     "Attendance can only be logged from the registered office network."
                 ) % client_ip_str)
 
-        except ValueError:
-            _logger.error("Data Integrity Error: Malformed IP Address format detected - %s", client_ip_str)
-            raise ValidationError(_("System Error: Invalid IP address structure detected (%s).") % client_ip_str)
+        except ValueError as err:
+            _logger.error("Data Integrity Error: Malformed IP Address format detected - %s", err)
+            raise ValidationError(_("System Error: Invalid IP address structure detected."))
 
         return True
 
@@ -186,21 +250,23 @@ class HrAttendance(models.Model):
             return {'success': False, 'error': 'EOD report is required (max 255 chars).'}
         
         try:
-            if attendance_id:
-                attendance = self.browse(attendance_id).exists()
-            else:
-                # Fallback: Identify the open session bound to the active context user
-                employee_id = self.env.context.get('employee_id') or self.env.user.employee_id.id
-                attendance = self.search([('employee_id', '=', employee_id), ('check_out', '=', False)], limit=1)
+            employee_id = self.env.context.get('employee_id') or self.env.user.employee_id.id
+            attendance = self.search([
+                ('employee_id', '=', employee_id),
+                ('check_out', '=', False),
+            ], limit=1)
 
             if not attendance:
                 return {'success': False, 'error': 'Cannot process EOD: No active attendance found.'}
 
-            # Enforce access rights: Users cannot sign-out counterparts via RPC payload manipulation
+            # Enforce access rights: Users cannot modify counterparts via RPC payload manipulation
             if not self.env.su and attendance.employee_id.user_id != self.env.user:
                 return {'success': False, 'error': 'Unauthorized Action: You can only modify your own sessions.'}
 
-            # Persist EOD content bypassing record-level normal constraint due to standard user groups
+            if attendance_id and attendance.id != attendance_id:
+                return {'success': False, 'error': 'Cannot process EOD: Active attendance mismatch.'}
+
+            # Persist EOD content only for the current open attendance session.
             attendance.sudo().write({
                 'eod_report': eod_text
             })
