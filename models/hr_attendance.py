@@ -151,7 +151,10 @@ class HrAttendance(models.Model):
         Validates the incoming HTTP request's IP against a whitelist of authorized office networks.
         Prevents unauthorized remote check-ins/check-outs.
         """
-        httprequest = getattr(request, 'httprequest', None)
+        try:
+            httprequest = request.httprequest
+        except RuntimeError:
+            httprequest = None
         if not httprequest:
             return True
 
