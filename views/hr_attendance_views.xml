@@ -19,6 +19,8 @@
                 <!-- Data Model Append -->
                 <field name="worked_hours" position="after">
                     <field name="eod_report" placeholder="End of day report..."/>
+                    <field name="missed_checkout" readonly="1"/>
+                    <field name="auto_checkout" readonly="1"/>
                 </field>
 
                 <!-- 
@@ -50,6 +52,8 @@
             <field name="arch" type="xml">
                 <field name="worked_hours" position="after">
                     <field name="eod_report" optional="show" string="EOD Summary"/>
+                    <field name="missed_checkout" optional="show"/>
+                    <field name="auto_checkout" optional="show"/>
                 </field>
 
                 <!-- Symmetrical Privacy Constraints applied to Datagrids -->
@@ -101,6 +105,8 @@
                     <!-- Direct tracking for HR Audits regarding user accountability -->
                     <filter string="With EOD Report" name="with_eod" domain="[('eod_report', '!=', False)]"/>
                     <filter string="Missing EOD Report" name="no_eod" domain="[('eod_report', '=', False)]"/>
+                    <filter string="Missed Checkout" name="missed_checkout" domain="[('missed_checkout', '=', True)]"/>
+                    <filter string="Auto Checked Out" name="auto_checkout" domain="[('auto_checkout', '=', True)]"/>
                 </xpath>
             </field>
         </record>

@@ -23,6 +23,7 @@ Designed for security-conscious organizations.
     'depends': ['hr_attendance', 'hr'],
     'data': [
         'security/security.xml',
+        'data/attendance_cron.xml',
         'views/hr_attendance_views.xml',
     ],
     'assets': {

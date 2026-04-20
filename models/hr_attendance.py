@@ -5,7 +5,7 @@ Description: Extends the standard hr.attendance model to incorporate strict IP-b
              timezone-aware daily attendance limits, and End of Day (EOD) reporting mechanisms.
 """
 
-from datetime import datetime, time, timedelta
+from datetime import datetime, time
 import pytz
 import ipaddress
 import logging
@@ -29,6 +29,18 @@ class HrAttendance(models.Model):
     eod_report = fields.Text(
         string="End of Day Report",
         help="Summary provided by the employee detailing accomplishments before check-out."
+    )
+    auto_checkout = fields.Boolean(
+        string="Auto Checked Out",
+        default=False,
+        readonly=True,
+        help="Enabled when the system closes an open attendance at day end."
+    )
+    missed_checkout = fields.Boolean(
+        string="Missed Checkout",
+        default=False,
+        readonly=True,
+        help="Enabled when the employee did not manually check out before day end."
     )
 
     # ---------------------------------------------------------
@@ -202,6 +214,68 @@ class HrAttendance(models.Model):
                 "You have already initiated a session today (%s). Sessions reset at midnight locally."
             ) % today_local)
 
+    def _get_attendance_timezone(self, employee):
+        """Resolve the timezone used for day-boundary attendance rules."""
+        tz_name = (
+            employee.user_id.tz
+            or employee.tz
+            or self.env.context.get('tz')
+            or self.env.user.tz
+            or 'UTC'
+        )
+        return pytz.timezone(tz_name)
+
+    def _get_day_end_utc_for_employee(self, employee, target_date):
+        """Return the UTC datetime for the employee's local 11:59:59 PM."""
+        employee_tz = self._get_attendance_timezone(employee)
+        local_day_end = employee_tz.localize(datetime.combine(target_date, time(23, 59, 59)))
+        return local_day_end.astimezone(pytz.UTC).replace(tzinfo=None)
+
+    def _auto_close_stale_attendances(self, attendances=None):
+        """
+        Close attendances that are still open after the employee's local day ended.
+        Used by both the cron and the check-in flow so next-day check-in does not
+        depend entirely on cron timing.
+        """
+        attendances = attendances or self.sudo().search([('check_out', '=', False)])
+        processed = 0
+        now_utc = fields.Datetime.now()
+        for attendance in attendances.sudo():
+            employee = attendance.employee_id
+            if not employee or not attendance.check_in:
+                continue
+
+            employee_tz = self._get_attendance_timezone(employee)
+            tz_context_attendance = attendance.with_context(tz=employee_tz.zone)
+            now_local_date = fields.Datetime.context_timestamp(tz_context_attendance, now_utc).date()
+            check_in_local_date = fields.Datetime.context_timestamp(
+                tz_context_attendance,
+                attendance.check_in,
+            ).date()
+
+            if check_in_local_date >= now_local_date:
+                continue
+
+            auto_checkout_at = self._get_day_end_utc_for_employee(employee, check_in_local_date)
+            attendance.write({
+                'check_out': auto_checkout_at,
+                'auto_checkout': True,
+                'missed_checkout': True,
+            })
+            processed += 1
+        return processed
+
+    @api.model
+    def _cron_auto_checkout_missed_attendances(self):
+        """
+        Auto-close attendances that remained open after the employee's local day ended.
+        This frees up next-day check-in while keeping a clear missed-checkout audit trail.
+        """
+        processed = self._auto_close_stale_attendances()
+        if processed:
+            _logger.info("Attendance Tracker: auto-checked-out %s missed attendances.", processed)
+        return processed
+
     # ---------------------------------------------------------
     # ORM OVERRIDES 
     # define create and write overrides to inject validation logic at critical points in the attendance lifecycle.
@@ -216,6 +290,11 @@ class HrAttendance(models.Model):
         for vals in vals_list:
             employee_id = vals.get('employee_id')
             if employee_id:
+                stale_attendances = self.sudo().search([
+                    ('employee_id', '=', employee_id),
+                    ('check_out', '=', False),
+                ])
+                self._auto_close_stale_attendances(stale_attendances)
                 if employee_id in checked_employees:
                     raise ValidationError(_(
                         "Policy Enforcement: Duplicate attendance entries detected for the same employee in one request."

@@ -29,5 +29,43 @@
             <field name="perm_create" eval="1"/>
             <field name="perm_unlink" eval="0"/>
         </record>
+
+        <!--
+            Employees should only see their own profile in employee menus,
+            while HR users/managers keep Odoo's broader native access.
+        -->
+        <record id="hr_employee_public_rule_own_profile_only" model="ir.rule">
+            <field name="name">Employee Public: Own Profile Only</field>
+            <field name="model_id" ref="hr.model_hr_employee_public"/>
+            <field name="domain_force">
+                [(1, '=', 1)] if (
+                    user.has_group('hr.group_hr_user')
+                    or user.has_group('hr.group_hr_manager')
+                    or user.has_group('base.group_erp_manager')
+                ) else [('user_id', '=', user.id)]
+            </field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="0"/>
+            <field name="perm_create" eval="0"/>
+            <field name="perm_unlink" eval="0"/>
+        </record>
+
+        <record id="hr_employee_rule_own_profile_only" model="ir.rule">
+            <field name="name">Employee Private: Own Profile Only</field>
+            <field name="model_id" ref="hr.model_hr_employee"/>
+            <field name="domain_force">
+                [(1, '=', 1)] if (
+                    user.has_group('hr.group_hr_user')
+                    or user.has_group('hr.group_hr_manager')
+                    or user.has_group('base.group_erp_manager')
+                ) else [('user_id', '=', user.id)]
+            </field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="0"/>
+            <field name="perm_create" eval="0"/>
+            <field name="perm_unlink" eval="0"/>
+        </record>
     </data>
 </odoo>
