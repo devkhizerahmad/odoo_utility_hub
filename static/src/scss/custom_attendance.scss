@@ -7,11 +7,31 @@
     border-radius: 24px;
     border: 1.5px solid rgba(255, 255, 255, 0.4);
     box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15), 0 0 20px rgba(124, 58, 237, 0.1);
+
+    @media (max-width: 480px) {
+        border-radius: 18px;
+    }
+}
+
+/* Ensure the modal dialog itself is responsive */
+.modal:has(.eod-glass-modal) .modal-dialog {
+    @media (max-width: 576px) {
+        margin: 1rem;
+        max-width: calc(100% - 2rem);
+    }
 }
 
 .eod-dialog-container {
     padding: 2rem;
     animation: fadeInScaleUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+
+    @media (max-width: 768px) {
+        padding: 1.5rem;
+    }
+
+    @media (max-width: 480px) {
+        padding: 1.25rem;
+    }
 }
 
 @keyframes fadeInScaleUp {
@@ -36,6 +56,11 @@
     display: flex;
     align-items: center;
     gap: 12px;
+
+    @media (max-width: 480px) {
+        font-size: 1.3rem;
+        gap: 8px;
+    }
 }
 
 .eod-title i {
@@ -53,6 +78,11 @@
     margin-bottom: 2rem;
     font-size: 1.05rem;
     line-height: 1.5;
+
+    @media (max-width: 480px) {
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+    }
 }
 
 .eod-textarea {
@@ -66,6 +96,12 @@
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     resize: none;
     color: #2d3748;
+
+    @media (max-width: 480px) {
+        min-height: 120px;
+        padding: 12px;
+        font-size: 1rem;
+    }
 }
 
 .eod-textarea:focus {
@@ -81,6 +117,13 @@
     justify-content: space-between;
     align-items: center;
     margin-top: 1.5rem;
+    gap: 1rem;
+
+    @media (max-width: 480px) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
 }
 
 .eod-counter {
@@ -92,6 +135,13 @@
     display: flex;
     align-items: center;
     gap: 6px;
+
+    @media (max-width: 480px) {
+        justify-content: center;
+        background: rgba(124, 58, 237, 0.05) !important;
+        border: 1px solid rgba(124, 58, 237, 0.1);
+        padding: 8px 14px;
+    }
 }
 
 .eod-counter.normal { background: rgba(124, 58, 237, 0.1); color: #7c3aed; }
@@ -117,35 +167,318 @@
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
     cursor: pointer;
+
+    @media (max-width: 480px) {
+        width: 100%;
+        padding: 14px;
+        font-size: 1.1rem;
+    }
 }
 
-/* Shimmer Animation */
-.eod-btn-submit::after {
-    content: '';
+/* =========================================================================
+   ULTRA-PREMIUM SYSTRAY STATUS INDICATORS (Final Solid Version)
+   ========================================================================= */
+
+.o_menu_systray i.fa-circle.text-danger,
+.o_menu_systray i.fa-circle.text-success {
+    width: 38px !important;
+    height: 38px !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    
+    /* 1. Base Glass Material */
+    backdrop-filter: blur(12px) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    
+    /* 2. 3D Rim & Depth Shadows */
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 
+                inset 0 -1px 1px rgba(0, 0, 0, 0.2),
+                0 4px 15px rgba(0, 0, 0, 0.12) !important;
+    
+    vertical-align: middle;
+    margin: 0 6px;
+    cursor: pointer;
+    overflow: hidden; 
+    z-index: 1;
+
+    /* Diagonal Light Shine (using ::before) */
+    &::before {
+        display: block !important;
+        content: "" !important;
+        position: absolute !important;
+        top: -100% !important;
+        left: -100% !important;
+        width: 300% !important;
+        height: 300% !important;
+        background: linear-gradient(45deg, transparent 45%, rgba(255,255,255,0.2) 50%, transparent 55%) !important;
+        z-index: 2 !important;
+        transition: all 0.8s ease;
+        pointer-events: none;
+    }
+
+    &:hover::before {
+        top: -50% !important;
+        left: -50% !important;
+    }
+}
+
+/* 4. Common Status Icon Style (::after) */
+.o_menu_systray i.fa-circle.text-danger::after,
+.o_menu_systray i.fa-circle.text-success::after {
+    font-family: "FontAwesome" !important;
+    font-size: 1.35rem !important;
+    font-weight: 900 !important;
+    position: absolute !important;
+    left: 48% !important; 
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 10 !important; 
+    transition: all 0.3s ease;
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* LOGIN ICON (Red Glow) */
+.o_menu_systray i.fa-circle.text-danger {
+    &::after {
+        content: "\f090" !important;
+        color: #ff4d4d !important;
+        filter: drop-shadow(0 0 8px rgba(255, 77, 77, 0.6));
+    }
+    animation: aura-red 3s infinite ease-in-out;
+}
+
+/* LOGOUT ICON (Green Glow) */
+.o_menu_systray i.fa-circle.text-success {
+    &::after {
+        content: "\f08b" !important;
+        color: #00ff88 !important;
+        filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.6));
+    }
+    animation: aura-green 4s infinite ease-in-out;
+}
+
+@keyframes aura-red {
+    0%, 100% { box-shadow: inset 0 1px 1px rgba(255,255,255,0.4), 0 0 5px rgba(255,77,77,0.2); }
+    50% { box-shadow: inset 0 1px 1px rgba(255,255,255,0.4), 0 0 20px rgba(255,77,77,0.45); }
+}
+
+@keyframes aura-green {
+    0%, 100% { box-shadow: inset 0 1px 1px rgba(255,255,255,0.4), 0 0 5px rgba(0,255,136,0.2); }
+    50% { box-shadow: inset 0 1px 1px rgba(255,255,255,0.4), 0 0 15px rgba(0,255,136,0.35); }
+}
+
+/* =========================================================================
+   PREMIUM ATTENDANCE DROPDOWN UI UPGRADE
+   ========================================================================= */
+
+/* Dropdown Container Glassmorphism */
+.o_att_menu_container {
+    padding: 5px;
+}
+
+/* Base Button Styling - The 20-Year Experience Approach */
+.o_att_menu_container .btn {
+    position: relative;
+    overflow: hidden;
+    padding: 16px 32px !important;
+    border-radius: 14px !important;
+    font-weight: 800 !important;
+    letter-spacing: 1.2px !important;
+    text-transform: uppercase !important;
+    font-size: 0.9rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 14px !important;
+    width: 100% !important;
+    
+    /* 3D Depth Shadows */
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+                inset 0 1px 1px rgba(255, 255, 255, 0.5),
+                inset 0 -1px 1px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* CHECK-IN BUTTON (Emerald Mesh Gradient) */
+.o_att_menu_container .btn-success {
+    background: linear-gradient(135deg, #059669 0%, #10b981 50%, #059669 100%) !important;
+    color: white !important;
+    box-shadow: 0 15px 30px -10px rgba(16, 185, 129, 0.5),
+                inset 0 1px 1px rgba(255, 255, 255, 0.4) !important;
+}
+
+.o_att_menu_container .btn-success:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.6),
+                inset 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+    background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #10b981 100%) !important;
+}
+
+/* CHECK-OUT BUTTON (Amber/Orange Mesh Gradient) */
+.o_att_menu_container .btn-warning {
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #d97706 100%) !important;
+    color: white !important;
+    box-shadow: 0 15px 30px -10px rgba(245, 158, 11, 0.5),
+                inset 0 1px 1px rgba(255, 255, 255, 0.4) !important;
+}
+
+.o_att_menu_container .btn-warning:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 20px 40px -10px rgba(245, 158, 11, 0.6),
+                inset 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+    background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #f59e0b 100%) !important;
+}
+
+/* Premium Silk Shimmer Effect */
+.o_att_menu_container .btn::after {
+    content: "";
     position: absolute;
-    top: -50%;
-    left: -60%;
-    width: 20%;
-    height: 200%;
-    background: rgba(255, 255, 255, 0.4);
-    transform: rotate(30deg);
-    transition: 0s;
+    top: 0;
+    left: -150%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    transform: skewX(-25deg);
+    animation: silk-shimmer 6s infinite ease-in-out;
 }
 
-.eod-btn-submit:hover::after {
-    left: 140%;
-    transition: 0.7s;
+@keyframes silk-shimmer {
+    0% { left: -150%; }
+    30% { left: 150%; }
+    100% { left: 150%; }
 }
 
-.eod-btn-submit:hover {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 8px 25px rgba(124, 58, 237, 0.5);
-    background: linear-gradient(135deg, #8b5cf6 0%, #4f46e5 100%);
+/* Icon Animation inside buttons */
+.o_att_menu_container .btn i {
+    font-size: 1.1rem !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.eod-btn-submit:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
+.o_att_menu_container .btn:hover i {
+    transform: translateX(5px) scale(1.1);
+}
+
+/* Dashboard Widget / att_container styling */
+.att_container {
+    border-radius: 12px;
+    padding: 10px !important;
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.att_container h2 {
+    color: #1e293b !important;
+    font-weight: 800 !important;
+}
+
+/* =========================================================================
+   FULL RESPONSIVENESS FOR PREMIUM COMPONENTS
+   ========================================================================= */
+
+@media (max-width: 991px) {
+    .o_menu_systray i.fa-circle.text-danger,
+    .o_menu_systray i.fa-circle.text-success {
+        width: 34px !important;
+        height: 34px !important;
+        margin: 0 4px;
+        &::after { font-size: 1.2rem !important; }
+    }
+}
+
+@media (max-width: 767px) {
+    .o_menu_systray i.fa-circle.text-danger,
+    .o_menu_systray i.fa-circle.text-success {
+        width: 30px !important;
+        height: 30px !important;
+        margin: 0 3px;
+        &::after { font-size: 1rem !important; }
+    }
+
+    .o_att_menu_container .btn {
+        padding: 14px 20px !important;
+        font-size: 0.85rem !important;
+    }
+}
+
+/* =========================================================================
+   EOD SUBMIT BUTTON - PREMIUM FINISH
+   ========================================================================= */
+.eod-btn-submit {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+    color: white;
+    padding: 12px 32px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    border: none;
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+    cursor: pointer;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -60%;
+        width: 20%;
+        height: 200%;
+        background: rgba(255, 255, 255, 0.4);
+        transform: rotate(30deg);
+        transition: 0s;
+    }
+
+    &:hover::after {
+        left: 140%;
+        transition: 0.7s;
+    }
+
+    &:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(124, 58, 237, 0.5);
+        background: linear-gradient(135deg, #8b5cf6 0%, #4f46e5 100%);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    @media (max-width: 480px) {
+        width: 100%;
+        padding: 14px;
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .o_menu_systray i.fa-circle.text-danger,
+    .o_menu_systray i.fa-circle.text-success {
+        width: 26px !important;
+        height: 26px !important;
+        margin: 0 2px;
+        &::after { font-size: 0.85rem !important; }
+    }
+
+    .o_att_menu_container .btn {
+        padding: 12px 16px !important;
+        font-size: 0.8rem !important;
+        letter-spacing: 0.8px !important;
+    }
 }

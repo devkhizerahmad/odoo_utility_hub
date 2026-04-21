@@ -111,7 +111,7 @@ patch(ActivityMenu.prototype, {
                         if (result && result.success) {
                             // Defer strictly to framework APIs to encapsulate Geocoding (Lat/Lng) processes natively
                             await originalSignInOut();
-                            this.notification.add("Checked out successfully!", { type: "success" });
+                         //   this.notification.add("Checked out successfully!", { type: "success" });
                             return { success: true };
                         } else if (result && result.error) {
                             this.notification.add(result.error, { type: "danger" });
