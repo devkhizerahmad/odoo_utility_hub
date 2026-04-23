@@ -13,16 +13,63 @@
     }
 }
 
-/* Ensure the modal dialog itself is responsive */
-.modal:has(.eod-glass-modal) .modal-dialog {
-    @media (max-width: 576px) {
-        margin: 1rem;
-        max-width: calc(100% - 2rem);
+/* Ensure the modal dialog is perfectly centered and responsive */
+.modal:has(.eod-glass-modal) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0, 0, 0, 0.2) !important; 
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    .modal-dialog {
+        margin: auto !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        max-width: 520px !important;
+        height: auto !important;
+        min-height: auto !important;
+        padding: 16px;
+
+        @media (max-width: 576px) {
+            padding: 12px;
+            max-width: calc(100% - 24px) !important;
+        }
+    }
+
+    .modal-content {
+        height: auto !important;
+        min-height: auto !important;
+        flex: 0 1 auto !important;
+        border: none !important;
+    }
+
+    .modal-header {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 1rem 1.5rem;
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .modal-body {
+        padding: 0 !important;
+        flex: 0 1 auto !important;
+    }
+
+    .modal-footer {
+        display: none !important;
     }
 }
 
 .eod-dialog-container {
     padding: 2rem;
+    width: 100%;
     animation: fadeInScaleUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 
     @media (max-width: 768px) {

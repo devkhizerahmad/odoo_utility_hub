@@ -18,6 +18,7 @@
                     <textarea class="eod-textarea" 
                               placeholder="Describe your achievements..." 
                               t-model="state.eodText"
+                              maxlength="255"
                               t-on-input="onInputChange"/>
                 </div>
 
